@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "acp-server"
+version = "0.0.1"
+description = "A minimal standalone ACP server that bridges a Deep Agent to the Agent Client Protocol"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["agent", "acp", "agent-client-protocol", "deepagents", "ai-agents"]
+
+dependencies = [
+  "deepagents-acp>=0.0.8",
+  "deepagents>=0.6.8",
+  "deepagents-code>=0.1.13",
+  "langchain-quickjs",
+  "langchain-anthropic>=1.4.4",
+  "python-dotenv>=1.2.2",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.15.0"]
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+deepagents = { path = "../github/langchain-ai/deepagents/libs/deepagents", editable = true }
+deepagents-acp = { path = "../github/langchain-ai/deepagents/libs/acp", editable = true }
+deepagents-code = { path = "../github/langchain-ai/deepagents/libs/code" }
+langchain-quickjs = { path = "../github/langchain-ai/deepagents/libs/partners/quickjs" }
+
+[tool.hatch.build.targets.wheel]
+packages = ["acp_server"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
