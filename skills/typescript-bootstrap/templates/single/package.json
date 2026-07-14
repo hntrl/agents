@@ -1,0 +1,57 @@
+{
+  "name": "__PKG_NAME__",
+  "version": "0.0.0",
+  "description": "__PKG_DESC__",
+  "type": "module",
+  "license": "__LICENSE__",
+  "author": "__AUTHOR__",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist/", "CHANGELOG.md", "LICENSE.md", "README.md"],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint --type-aware",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [],
+    "minimumReleaseAge": 1440,
+    "minimumReleaseAgeExclude": []
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "globals": "^17.7.0",
+    "oxfmt": "^0.56.0",
+    "oxlint": "^1.71.0",
+    "tsdown": "^0.22.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

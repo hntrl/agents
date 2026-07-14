@@ -1,0 +1,33 @@
+{
+  "name": "__PKG_NAME__-root",
+  "version": "0.0.0",
+  "description": "__PKG_DESC__",
+  "private": true,
+  "type": "module",
+  "license": "__LICENSE__",
+  "author": "__AUTHOR__",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:watch": "vitest",
+    "lint": "oxlint --type-aware",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "globals": "^17.7.0",
+    "oxfmt": "^0.56.0",
+    "oxlint": "^1.71.0",
+    "tsdown": "^0.22.3",
+    "turbo": "^2.10.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

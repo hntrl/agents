@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Hardening: for a public repo, consider pinning each action to a full commit
+# SHA (e.g. actions/checkout@<sha> # v4) instead of a moving @vN tag.
+jobs:
+  # Fast, single-run quality gates (don't need the version matrix).
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      # .nvmrc must pin Node 22.18+ (required by tsdown and oxlint at build time).
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Format check
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Check exports (knip)
+        run: pnpm check:exports
+      - name: Build
+        run: pnpm build
+      - name: Verify clean working directory
+        run: |
+          set -eu
+          STATUS="$(git status --porcelain)"
+          if [ -n "$STATUS" ]; then
+            echo "::error::Working tree is dirty after build:"
+            echo "$STATUS"
+            exit 1
+          fi
+
+  # Tests across the supported Node range.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["22", "24"]
+    name: "test (Node ${{ matrix.node-version }})"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Test
+        run: pnpm test
+
+  # Fan-in sentinel for branch protection: require just this one check.
+  ci_success:
+    name: CI Success
+    needs: [check, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all jobs passed
+        run: |
+          results='${{ toJSON(needs.*.result) }}'
+          echo "Job results: $results"
+          if echo "$results" | grep -q '"failure"'; then
+            echo "Some jobs failed"
+            exit 1
+          fi
+          if echo "$results" | grep -q '"cancelled"'; then
+            echo "Some jobs were cancelled"
+            exit 1
+          fi
+          echo "All checks passed"

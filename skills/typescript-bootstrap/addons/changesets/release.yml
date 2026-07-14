@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # create the "Version Packages" PR + tags
+  pull-requests: write # open/update that PR
+  id-token: write # npm provenance via OIDC
+
+# REQUIRED: pin every action below to a full commit SHA before using this in a
+# publishing repo (it holds NPM_TOKEN). Fetch SHAs — see INSTALL.md:
+#   gh api repos/changesets/action/commits/v1 --jq '.sha'
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to SHA
+      - uses: pnpm/action-setup@v4 # TODO: pin to SHA
+      - uses: actions/setup-node@v4 # TODO: pin to SHA
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Create Release PR or publish
+        uses: changesets/action@v1 # TODO: pin to SHA
+        with:
+          # `pnpm release` = build then `changeset publish` (provenance via publishConfig)
+          publish: pnpm release
+          version: pnpm version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

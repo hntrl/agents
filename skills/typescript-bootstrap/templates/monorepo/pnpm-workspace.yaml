@@ -1,0 +1,15 @@
+packages:
+  - "packages/*"
+  - "examples/*"
+
+# Supply-chain hardening.
+# Block postinstall build scripts by default; allow-list only the native
+# packages you actually trust to run them. Run `pnpm approve-builds` to see
+# what wants to build, then add entries here.
+onlyBuiltDependencies: []
+
+# Don't install dependency versions published less than this many minutes ago
+# (1440 = 24h), to dodge freshly-published malicious releases. Add trusted
+# fast-moving packages to minimumReleaseAgeExclude if this gets in the way.
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude: []

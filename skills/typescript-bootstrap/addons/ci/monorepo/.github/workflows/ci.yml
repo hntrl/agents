@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Hardening: for a public repo, consider pinning each action to a full commit
+# SHA (e.g. actions/checkout@<sha> # v4) instead of a moving @vN tag.
+jobs:
+  # Root-level quality gates that scan the whole workspace in one pass.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Format check
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: Check exports (knip)
+        run: pnpm check:exports
+      - name: Typecheck (all packages)
+        run: pnpm turbo run typecheck
+
+  # Detect which packages changed so we only test those on PRs.
+  # On push to main, every filter is forced true (see the `||` in each test job).
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # Add one output per workspace package.
+      core: ${{ steps.filter.outputs.core }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Add one filter per package. Include the CI files so infra changes
+          # re-run every package. (Rename `core` / paths to your package.)
+          filters: |
+            core:
+              - 'packages/__PKG_DIR__/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/_test.yml'
+
+  # One test job per package, calling the reusable workflow.
+  # Duplicate this block per package, swapping the package name + `if` output.
+  test-core:
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || github.event_name == 'push'
+    uses: ./.github/workflows/_test.yml
+    with:
+      package: "__PKG_NAME__"
+      node-versions: '["22", "24"]'
+
+  # Fan-in sentinel for branch protection: require only this check.
+  ci_success:
+    name: CI Success
+    needs: [check, changes, test-core]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all jobs passed
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          results='${{ toJSON(needs.*.result) }}'
+          echo "Job results: $results"
+          if echo "$results" | grep -q '"failure"'; then
+            echo "Some jobs failed"
+            exit 1
+          fi
+          # Skipped package jobs are fine (unchanged on a PR). On PRs a
+          # cancellation is suspicious; on push it's usually concurrency preemption.
+          if [ "$EVENT_NAME" != "push" ] && echo "$results" | grep -q '"cancelled"'; then
+            echo "Some jobs were cancelled (not allowed on $EVENT_NAME)"
+            exit 1
+          fi
+          echo "All required checks passed"

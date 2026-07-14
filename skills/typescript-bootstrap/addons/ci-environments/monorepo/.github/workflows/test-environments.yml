@@ -1,0 +1,72 @@
+name: Test (environments)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Hardening: pin each action to a full commit SHA (see addons/ci-environments/INSTALL.md).
+#
+# This runs the multi-environment suite for one package (__PKG_NAME__). Duplicate
+# the matrix entry / add a job per package whose runtime portability you care about
+# — not every package needs to run everywhere.
+jobs:
+  vitest-environments:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ["__PKG_NAME__"]
+        env: [node, edge] # add: cloudflare
+    name: "${{ matrix.package }} (${{ matrix.env }})"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Build deps
+        run: pnpm turbo run build --filter=${{ matrix.package }}...
+      - name: Test (${{ matrix.env }})
+        run: >-
+          pnpm --filter=${{ matrix.package }} exec
+          vitest run --config vitest.environments.config.ts --project ${{ matrix.env }}
+
+  bun:
+    runs-on: ubuntu-latest
+    name: "__PKG_NAME__ (bun, best-effort)"
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - name: Test (bun)
+        run: >-
+          pnpm --filter=__PKG_NAME__ exec
+          bunx vitest run --config vitest.environments.config.ts --project node
+
+  environments_success:
+    name: Environments Success
+    needs: [vitest-environments, bun]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required env jobs passed
+        run: |
+          result='${{ needs.vitest-environments.result }}'
+          echo "vitest-environments: $result"
+          if [ "$result" != "success" ]; then
+            echo "Environment tests failed"
+            exit 1
+          fi
+          echo "Environment tests passed (bun is advisory)"

@@ -1,0 +1,42 @@
+# Reusable unit-test workflow for one workspace package.
+# Called once per package from ci.yml with a package path + a Node version matrix.
+name: Unit Test (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+        description: "Workspace filter name, e.g. @scope/core"
+      node-versions:
+        required: false
+        type: string
+        default: '["22", "24"]'
+        description: 'JSON array of Node versions (quoted strings, e.g. ["22","24"])'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ${{ fromJSON(inputs.node-versions) }}
+    name: "${{ inputs.package }} (Node ${{ matrix.node-version }})"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      # Build dependencies of this package, then run only its tests.
+      - name: Build (with deps)
+        run: pnpm turbo run build --filter=${{ inputs.package }}...
+      - name: Test
+        run: pnpm turbo run test --filter=${{ inputs.package }}

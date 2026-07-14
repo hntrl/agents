@@ -1,0 +1,65 @@
+name: Test (environments)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Hardening: pin each action to a full commit SHA (see addons/ci-environments/INSTALL.md
+# for how to fetch the current SHA), e.g. actions/checkout@<sha> # v4.
+jobs:
+  # node + edge-runtime + cloudflare: the same suite, run as Vitest projects.
+  vitest-environments:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [node, edge] # add: cloudflare (needs @cloudflare/vitest-pool-workers + wrangler)
+    name: "vitest (${{ matrix.env }})"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Test (${{ matrix.env }})
+        run: pnpm vitest run --config vitest.environments.config.ts --project ${{ matrix.env }}
+
+  # Bun — best-effort / unofficial: `bunx vitest` runs Vitest on Bun's Node-compat
+  # layer. It does NOT exercise Bun's native test runner. May break on Bun upgrades.
+  bun:
+    runs-on: ubuntu-latest
+    name: "vitest (bun, best-effort)"
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - name: Test (bun)
+        run: bunx vitest run --config vitest.environments.config.ts --project node
+
+  environments_success:
+    name: Environments Success
+    needs: [vitest-environments, bun]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required env jobs passed
+        run: |
+          # bun is continue-on-error, so only gate on the Vitest-family matrix.
+          result='${{ needs.vitest-environments.result }}'
+          echo "vitest-environments: $result"
+          if [ "$result" != "success" ]; then
+            echo "Environment tests failed"
+            exit 1
+          fi
+          echo "Environment tests passed (bun is advisory)"
