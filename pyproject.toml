@@ -18,6 +18,7 @@ dependencies = [
   "langchain-quickjs",
   "langchain-anthropic>=1.4.4",
   "python-dotenv>=1.2.2",
+  "langchain-baseten>=0.2.1",
 ]
 
 [dependency-groups]
@@ -30,7 +31,7 @@ package = true
 deepagents = { path = "../github/langchain-ai/deepagents/libs/deepagents", editable = true }
 deepagents-acp = { path = "../github/langchain-ai/deepagents/libs/acp", editable = true }
 deepagents-code = { path = "../github/langchain-ai/deepagents/libs/code" }
-langchain-quickjs = { path = "../github/langchain-ai/deepagents/libs/partners/quickjs" }
+langchain-quickjs = { path = "../github/langchain-ai/deepagents/libs/partners/quickjs", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["acp_server"]

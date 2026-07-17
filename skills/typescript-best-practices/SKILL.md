@@ -1,6 +1,6 @@
 ---
 name: typescript-best-practices
-description: "Apply strict TypeScript library-style best practices. Use when authoring, reviewing, or refactoring TypeScript code; designing public APIs; tightening types; or setting up TypeScript lint/build/test conventions. You MUST trigger whenever TypeScript is involved with the work that you do."
+Apply strict TypeScript library-style best practices, including advanced type-level design. Use when authoring, reviewing, or refactoring TypeScript code; designing public APIs; tightening types; diagnosing TypeScript configuration or compiler issues; or setting up TypeScript lint/build/test conventions. You MUST trigger whenever TypeScript is involved with the work that you do.
 ---
 
 # TypeScript Best Practices
@@ -19,6 +19,14 @@ Use this skill to write idiomatic TypeScript: explicit public APIs, strong gener
 3. **Public APIs must infer useful types.** Callers should rarely annotate generic arguments manually.
 4. **Every exported function/class/type should have a reason to exist.** Keep internals private or unexported unless they support composition.
 5. **Tests must prove behavior and type intent.** Runtime tests cover behavior; type-level expectations or compile-time examples cover inference/narrowing.
+
+## Reference Routing
+
+Keep this file as the default guidance. Open a reference only when the task needs its narrower material:
+
+- Open [`references/advanced-types-playbook.md`](references/advanced-types-playbook.md) when designing or debugging custom generics, conditional or mapped types, template-literal protocols, bounded recursive types, typed event/API/builder contracts, or type tests. Do not open it for routine annotations, narrowing, or everyday application code.
+- Open [`references/compiler-and-project-diagnostics.md`](references/compiler-and-project-diagnostics.md) when detecting an unfamiliar project setup, diagnosing compiler performance or module resolution, planning an incremental JavaScript migration, deciding whether monorepo project references fit, or selecting reproducible one-shot validation commands. Do not use it as scaffolding guidance or as a replacement for the type rules in this file.
+- Consult [`references/tsconfig-strict.example.json`](references/tsconfig-strict.example.json) only while reviewing or adapting an existing TypeScript configuration. It is an example to tailor to the project's runtime, module resolver, emit strategy, libraries, and file layout—not a config to copy wholesale. Read the diagnostics reference first when those choices are unclear.
 
 ## Type System Rules
 
@@ -153,6 +161,18 @@ export type SubscriberCallback<T, R = void> = (
 ```
 
 Do not rely on implicit `this`, and do not erase it with arrow functions when the receiver matters.
+
+## Advanced Type-Level Design
+
+Reach for conditional, mapped, template-literal, or recursive types only when they make a public contract safer or more ergonomic. Keep the runtime representation simple, bound recursion, and prove inference with type tests.
+
+- Prefer `satisfies`, `as const`, generic constraints, and built-in utility types before custom type-level machinery.
+- Use conditional types with `infer` to extract relationships from existing types rather than duplicating declarations.
+- Use mapped types for systematic transformations; key remapping must preserve a comprehensible public surface.
+- For recursive types, define a depth limit or a simpler fallback to avoid excessive-instantiation errors and slow editor feedback.
+- When compiler performance or module resolution fails, begin with the project’s `typecheck` script (or `tsc --noEmit`), then use `--extendedDiagnostics` or `--traceResolution` only to isolate the cause.
+
+Do not introduce type gymnastics for internal convenience. If an advanced type is hard to explain with one sentence and a type test, prefer a simpler runtime validation or a narrower API.
 
 ## Runtime Design Patterns
 

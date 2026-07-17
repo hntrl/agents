@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "notion": {
+      "url": "https://mcp.notion.com/mcp",
+      "transport": "http",
+      "auth": "oauth"
+    },
+    "slack": {
+      "url": "https://mcp.slack.com/mcp",
+      "transport": "http",
+      "auth": "oauth"
+    },
+    "langsmith": {
+      "url": "https://api.smith.langchain.com/mcp",
+      "transport": "http",
+      "auth": "oauth"
+    },
+    "pylon": {
+      "url": "https://mcp.usepylon.com/",
+      "transport": "http",
+      "auth": "oauth"
+    }
+  }
+}

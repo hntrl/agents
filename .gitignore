@@ -28,6 +28,11 @@ dist/
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.crt
+credentials.json
+token.json
 
 # Logs and runtime files
 *.log
@@ -37,6 +42,7 @@ dist/
 .DS_Store
 Thumbs.db
 .vscode/
+.zed/
 .idea/
 *.swp
 *.swo
